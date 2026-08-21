@@ -65,3 +65,7 @@ target/
 
 #Docker
 *.tar
+
+
+#temp ignore while merging
+bmiPcrglobwb_Copy.py
