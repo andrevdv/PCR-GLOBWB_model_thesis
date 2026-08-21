@@ -408,9 +408,6 @@ class BmiPCRGlobWB(EBmi):
 
         logger.info("setting value for %s", long_var_name)
 
-        # logger.info("dumping state to %s", self.configuration.endStateDir)
-        # self.model.dumpStateDir(self.configuration.endStateDir + "/pre/")
-
         # print "got value to set", src
 
         src = np.reshape(src, self.shape)
@@ -431,12 +428,6 @@ class BmiPCRGlobWB(EBmi):
 
         if long_var_name == "near_surface_soil_saturation_degree":
             self.set_satDegUpp000005(src)
-        # elif long_var_name == "upper_soil_saturation_degree":
-        #     self.set_satDegUpp(src)
-        # elif long_var_name == "precipitation":
-        #     self.set_precipitation(src)
-        # elif long_var_name == "temperature":
-        #     self.set_temperature(src)
         elif long_var_name == "channel_storage":
             self.set_channel_storage(src)
         elif long_var_name == "discharge":
