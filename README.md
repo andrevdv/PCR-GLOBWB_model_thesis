@@ -2,6 +2,8 @@
 
 PCR-GLOBWB (PCRaster Global Water Balance) is a large-scale hydrological model intended for global to regional studies and developed at the Department of Physical Geography, Utrecht University (Netherlands). This repository holds the model scripts of PCR-GLOBWB. 
 
+This is my version for thesis
+
 For additional information about the model please checkout the PCR-GLOBWB documentation at https://pcrglobwb.readthedocs.io/en/latest/.
 
 Please also see the file README.txt.
