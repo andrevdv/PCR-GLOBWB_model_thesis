@@ -1,6 +1,6 @@
 # PCR-GLOBWB — BMI/eWaterCycle adaptation
 
-This repository contains a modified version of the PCR-GLOBWB model developed for use with Python 3 and the eWaterCycle framework.
+This repository contains a modified version of the PCR-GLOBWB model developed for use in the eWaterCycle framework.
 
 This is a fork of the original PCR-GLOBWB repository. For the original model, documentation, and source code, please refer to the links below.
 
