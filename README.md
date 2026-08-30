@@ -24,4 +24,9 @@ The main modifications made in this fork are:
 
 This version was developed as part of my TU Delft Masters' thesis project to model the Aral Sea.
 
-The original PCR-GLOBWB model and its documentation remain the reference for the underlying model methodology. This repository documents the modifications and adaptations made for this version of the model in order for my research and for possible ewatercycle integration.
+The original PCR-GLOBWB model2 and its documentation remain the reference for the underlying model methodology. This repository documents the modifications and adaptations made for this version of the model in order for my research and for possible ewatercycle integration.
+
+
+## Miscellaneous
+
+WSL and Docker: Use WSL together with the Docker CLI to build (and run) containers. Docker Desktop for Windows is not recommended, as the original model was developed and tested in a Linux environment and may not work reliably with Docker Desktop for Windows.
