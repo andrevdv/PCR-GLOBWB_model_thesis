@@ -15,6 +15,16 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 ENV PATH=/opt/conda/envs/pcrglobwb_python3/bin:$PATH
 ENV CONDA_DEFAULT_ENV=pcrglobwb_python3
 
+# Install C/C++ compilers required to build Cython extensions 
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Return to the default non-root user
+USER $MAMBA_USER
+
 # Copy project code
 COPY . /usr/src/app
 WORKDIR /usr/src/app
@@ -25,11 +35,30 @@ WORKDIR /usr/src/app
 RUN pip install .
 
 
+# Compile imagemean.pyx
+WORKDIR /usr/src/app/model
+RUN cythonize -i imagemean.pyx
+
+
 # Make project importable
 ENV PYTHONPATH=/usr/src/app:/usr/src/app/model
 
+WORKDIR /usr/src/app
+
+
 # Entry point
 ENTRYPOINT ["run-bmi-server", "--path", "/usr/src/app", "--name", "model.bmiPcrglobwb.BmiPCRGlobWB", "--port", "55555", "--debug"]
+
+
+
+
+
+
+
+
+
+
+
 
 # FROM mambaorg/micromamba:1.3.1
 
