@@ -1,0 +1,33 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: PCRGLOBWB2-eWaterCycle
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Andre
+    family-names: Van der Veen
+    affiliation: Delft University of Technology
+    orcid: 'https://orcid.org/0009-0009-5611-8888'
+    email: A.B.vanderVeen-1@student.tudelft.nl
+  - website: 'https://www.ewatercycle.org/'
+    name: The eWaterCycle project
+repository-code: 'https://github.com/andrevdv/PCR-GLOBWB_model_thesis'
+url: 'https://github.com/andrevdv/PCR-GLOBWB_model_thesis'
+abstract: >
+  This version of PCR-GLOBWB2 was developed as part of my TU
+  Delft Masters' thesis project to model the Aral Sea.
+
+
+  The original PCR-GLOBWB model and its documentation remain
+  the reference for the underlying model methodology. This
+  repository documents the modifications and adaptations
+  made for this version of the model in order for my
+  research and for possible ewatercycle integration.
+keywords:
+  - PCR-GLOBWB2
+  - eWaterCycle
+license: GPL-3.0
