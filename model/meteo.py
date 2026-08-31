@@ -1038,13 +1038,31 @@ class Meteo(object):
                                       # ~ useDoy = method_for_time_index,
                                       # ~ cloneMapFileName = self.cloneMap,\
                                       # ~ LatitudeLongitude = True)
+        # was automatic
+        # self.precipitation = vos.netcdf2PCRobjClone(\
+        #                               netcdf_file_name, "automatic",\
+        #                               str(currTimeStep.fulldate), 
+        #                               useDoy = method_for_time_index,
+        #                               cloneMapFileName = self.cloneMap,\
+        #                               LatitudeLongitude = True)
+        for varname in ("pr", "precipitation"):
+            try:
+                self.precipitation = vos.netcdf2PCRobjClone(
+                    netcdf_file_name, varname,
+                    str(currTimeStep.fulldate),
+                    useDoy=method_for_time_index,
+                    cloneMapFileName=self.cloneMap,
+                    LatitudeLongitude=True
+                )
+                break
+            except KeyError:
+                continue
+        else:
+            raise KeyError(
+                f"None of the precipitation variables ('pr', 'precipitation') "
+                f"found in {netcdf_file_name}"
+            )
 
-        self.precipitation = vos.netcdf2PCRobjClone(\
-                                      netcdf_file_name, "automatic",\
-                                      str(currTimeStep.fulldate), 
-                                      useDoy = method_for_time_index,
-                                      cloneMapFileName = self.cloneMap,\
-                                      LatitudeLongitude = True)
 
         #-----------------------------------------------------------------------
         # NOTE: RvB 13/07/2016 added to automatically update precipitation              
@@ -1090,12 +1108,31 @@ class Meteo(object):
                                       # ~ cloneMapFileName = self.cloneMap,\
                                       # ~ LatitudeLongitude = True)
 
-        self.temperature = vos.netcdf2PCRobjClone(\
-                                      netcdf_file_name, "automatic",\
-                                      str(currTimeStep.fulldate), 
-                                      useDoy = method_for_time_index,
-                                      cloneMapFileName = self.cloneMap,\
-                                      LatitudeLongitude = True)
+        # was automatic
+        # self.temperature = vos.netcdf2PCRobjClone(\
+        #                               netcdf_file_name, "automatic",\
+        #                               str(currTimeStep.fulldate), 
+        #                               useDoy = method_for_time_index,
+        #                               cloneMapFileName = self.cloneMap,\
+        #                               LatitudeLongitude = True)
+
+        for varname in ("tas", "temperature"):
+            try:
+                self.temperature = vos.netcdf2PCRobjClone(
+                    netcdf_file_name, varname,
+                    str(currTimeStep.fulldate),
+                    useDoy=method_for_time_index,
+                    cloneMapFileName=self.cloneMap,
+                    LatitudeLongitude=True
+                )
+                break
+            except KeyError:
+                continue
+        else:
+            raise KeyError(
+                f"None of the temperature variables ('tas', 'temperature') "
+                f"found in {netcdf_file_name}"
+            )
 
         #-----------------------------------------------------------------------
         # NOTE: RvB 13/07/2016 added to automatically update temperature
