@@ -1111,7 +1111,12 @@ class LandCover(object):
                                             currTimeStep.fulldate, useDoy = 'daily_seasonal',\
                                             cloneMapFileName = self.cloneMap), 0.0)
         self.inputCropKC = cropKC                                               # This line is needed for debugging. (Can we remove this?)
-        self.cropKC = pcr.max(cropKC, self.minCropKC)                                
+        self.cropKC = pcr.max(cropKC, self.minCropKC)
+
+        # Apply crop coefficient prefactor if available (BMI prefactor)
+        if hasattr(self, 'cropCoefficientPrefactor'):
+            self.cropKC = self.cropKC * self.cropCoefficientPrefactor   
+
 
         # calculate potential ET (unit: m/day)
         self.totalPotET = pcr.ifthen(self.landmask,\
