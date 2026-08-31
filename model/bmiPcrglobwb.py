@@ -58,6 +58,9 @@ class BmiPCRGlobWB(EBmi):
 
             self.model = None
 
+            self._ensure_prefactor_store()
+            self._read_prefactor()
+
         except:
             import traceback
             traceback.print_exc()
@@ -78,6 +81,12 @@ class BmiPCRGlobWB(EBmi):
             self.model = PCRGlobWB(self.configuration, self.model_time, initial_state)
 
             self.reporting = Reporting(self.configuration, self.model, self.model_time)
+
+            self._ensure_prefactor_store()
+            if self._prefactor_baseline is None:
+                self._capture_prefactor_baseline()
+                
+            self._apply_static_prefactors()
 
             logger.info("Shape of maps is %s", str(self.shape))
 
