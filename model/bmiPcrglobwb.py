@@ -88,6 +88,266 @@ class BmiPCRGlobWB(EBmi):
             traceback.print_exc()
             raise
 
+    def _ensure_prefactor_store(self):
+        if hasattr(self, "_prefactors"):
+            if not hasattr(self, "_prefactor_baseline"):
+                self._prefactor_baseline = None
+            return
+
+        self._prefactors = {
+            "linear_multiplier_for_degreeDayFactor": 1.0,
+            "linear_multiplier_for_minSoilDepthFrac": 1.0,
+            "log_10_multiplier_for_kSat": 0.0,
+            "linear_multiplier_for_storCap": 1.0,
+            "log_10_multiplier_for_recessionCoeff": 0.0,
+            "multiplier_for_manningsN": 1.0,
+            "linear_multiplier_for_cropCoefficient": 1.0,
+        }
+        self._prefactor_baseline = None
+
+    def _normalize_prefactor_name(self, attribute_name):
+        name = str(attribute_name)
+        if name.startswith("prefactor."):
+            name = name[len("prefactor."):]
+
+        aliases = {
+            "multiplier_for_degreeDayFactor": "linear_multiplier_for_degreeDayFactor",
+            "multiplier_for_minSoilDepthFrac": "linear_multiplier_for_minSoilDepthFrac",
+            "multiplier_for_kSat": "log_10_multiplier_for_kSat",
+            "multiplier_for_storCap": "linear_multiplier_for_storCap",
+            "multiplier_for_recessionCoeff": "log_10_multiplier_for_recessionCoeff",
+            "multiplier_for_cropCoefficient": "linear_multiplier_for_cropCoefficient",
+        }
+        return aliases.get(name, name)
+
+    @staticmethod
+    def _as_float(value, default):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _log_prefactors(self, message):
+        logger.info(message)
+        for key in sorted(self._prefactors.keys()):
+            logger.info("BMI prefactor %s = %s", key, self._prefactors[key])
+
+    def _read_prefactor(self):
+        self._ensure_prefactor_store()
+
+        if not hasattr(self, "configuration"):
+            self._log_prefactors("No configuration found. BMI prefactors remain at defaults.")
+            return
+        if not hasattr(self.configuration, "allSections"):
+            self._log_prefactors("Configuration has no sections. BMI prefactors remain at defaults.")
+            return
+        if "prefactorOptions" not in self.configuration.allSections:
+            self._log_prefactors("No prefactorOptions section found. BMI prefactors remain at defaults.")
+            return
+
+        options = {}
+        for key, value in self.configuration.prefactorOptions.items():
+            normalized_key = self._normalize_prefactor_name(key)
+            if normalized_key in self._prefactors:
+                options[normalized_key] = value
+
+        for key, default_value in self._prefactors.items():
+            if key not in options:
+                continue
+            self._prefactors[key] = self._as_float(options[key], default_value)
+
+        self._log_prefactors("BMI prefactors loaded from prefactorOptions.")
+
+    def _capture_prefactor_baseline(self):
+        self._ensure_prefactor_store()
+
+        if self.model is None:
+            return
+
+        n_layers = self.model.landSurface.numberOfSoilLayers
+        baseline = {
+            "numberOfSoilLayers": n_layers,
+            "manningsN": self.model.routing.manningsN,
+            "recessionCoeff": self.model.groundwater.recessionCoeff,
+            "cover": {},
+        }
+
+        for cover_type in self.model.landSurface.coverTypes:
+            land_cover = self.model.landSurface.landCoverObj[cover_type]
+            cover = {
+                "degreeDayFactor": land_cover.degreeDayFactor,
+                "minSoilDepthFrac": land_cover.minSoilDepthFrac,
+                "maxSoilDepthFrac": land_cover.maxSoilDepthFrac,
+                "arnoBeta": land_cover.arnoBeta,
+                "rootZoneWaterStorageMin": land_cover.rootZoneWaterStorageMin,
+                "rootZoneWaterStorageRange": land_cover.rootZoneWaterStorageRange,
+                "orographyBeta": land_cover.parameters.orographyBeta,
+            }
+
+            if n_layers == 2:
+                cover["kSatUpp"] = land_cover.parameters.kSatUpp
+                cover["kSatLow"] = land_cover.parameters.kSatLow
+                cover["storCapUpp"] = land_cover.parameters.storCapUpp
+                cover["storCapLow"] = land_cover.parameters.storCapLow
+            elif n_layers == 3:
+                cover["kSatUpp000005"] = land_cover.parameters.kSatUpp000005
+                cover["kSatUpp005030"] = land_cover.parameters.kSatUpp005030
+                cover["kSatLow030150"] = land_cover.parameters.kSatLow030150
+                cover["storCapUpp000005"] = land_cover.parameters.storCapUpp000005
+                cover["storCapUpp005030"] = land_cover.parameters.storCapUpp005030
+                cover["storCapLow030150"] = land_cover.parameters.storCapLow030150
+            else:
+                raise ValueError("Unsupported numberOfSoilLayers: " + str(n_layers))
+
+            baseline["cover"][cover_type] = cover
+
+        self._prefactor_baseline = baseline
+
+    def _apply_static_prefactors(self):
+        if self.model is None:
+            return
+
+        self._ensure_prefactor_store()
+
+        if self._prefactor_baseline is None:
+            self._capture_prefactor_baseline()
+
+        prefactors = self._prefactors
+        baseline = self._prefactor_baseline
+        n_layers = baseline["numberOfSoilLayers"]
+
+        self.model.routing.manningsN = (
+            prefactors["multiplier_for_manningsN"] * baseline["manningsN"]
+        )
+
+        recession_coeff = pcr.max(
+            0.0,
+            (10 ** prefactors["log_10_multiplier_for_recessionCoeff"])
+            * baseline["recessionCoeff"],
+        )
+        self.model.groundwater.recessionCoeff = pcr.min(1.0, recession_coeff)
+
+        for cover_type in self.model.landSurface.coverTypes:
+            land_cover = self.model.landSurface.landCoverObj[cover_type]
+            cover_baseline = baseline["cover"][cover_type]
+
+            land_cover.degreeDayFactor = pcr.max(
+                0.0,
+                prefactors["linear_multiplier_for_degreeDayFactor"]
+                * cover_baseline["degreeDayFactor"],
+            )
+
+            if n_layers == 2:
+                land_cover.parameters.kSatUpp = pcr.max(
+                    0.0,
+                    (10 ** prefactors["log_10_multiplier_for_kSat"])
+                    * cover_baseline["kSatUpp"],
+                )
+                land_cover.parameters.kSatLow = pcr.max(
+                    0.0,
+                    (10 ** prefactors["log_10_multiplier_for_kSat"])
+                    * cover_baseline["kSatLow"],
+                )
+
+                land_cover.parameters.storCapUpp = pcr.max(
+                    0.0,
+                    prefactors["linear_multiplier_for_storCap"]
+                    * cover_baseline["storCapUpp"],
+                )
+                land_cover.parameters.storCapLow = pcr.max(
+                    0.0,
+                    prefactors["linear_multiplier_for_storCap"]
+                    * cover_baseline["storCapLow"],
+                )
+                land_cover.parameters.rootZoneWaterStorageCap = (
+                    land_cover.parameters.storCapUpp + land_cover.parameters.storCapLow
+                )
+            elif n_layers == 3:
+                land_cover.parameters.kSatUpp000005 = pcr.max(
+                    0.0,
+                    (10 ** prefactors["log_10_multiplier_for_kSat"])
+                    * cover_baseline["kSatUpp000005"],
+                )
+                land_cover.parameters.kSatUpp005030 = pcr.max(
+                    0.0,
+                    (10 ** prefactors["log_10_multiplier_for_kSat"])
+                    * cover_baseline["kSatUpp005030"],
+                )
+                land_cover.parameters.kSatLow030150 = pcr.max(
+                    0.0,
+                    (10 ** prefactors["log_10_multiplier_for_kSat"])
+                    * cover_baseline["kSatLow030150"],
+                )
+
+                land_cover.parameters.storCapUpp000005 = pcr.max(
+                    0.0,
+                    prefactors["linear_multiplier_for_storCap"]
+                    * cover_baseline["storCapUpp000005"],
+                )
+                land_cover.parameters.storCapUpp005030 = pcr.max(
+                    0.0,
+                    prefactors["linear_multiplier_for_storCap"]
+                    * cover_baseline["storCapUpp005030"],
+                )
+                land_cover.parameters.storCapLow030150 = pcr.max(
+                    0.0,
+                    prefactors["linear_multiplier_for_storCap"]
+                    * cover_baseline["storCapLow030150"],
+                )
+                land_cover.parameters.rootZoneWaterStorageCap = (
+                    land_cover.parameters.storCapUpp000005
+                    + land_cover.parameters.storCapUpp005030
+                    + land_cover.parameters.storCapLow030150
+                )
+            else:
+                raise ValueError("Unsupported numberOfSoilLayers: " + str(n_layers))
+
+            if prefactors["linear_multiplier_for_minSoilDepthFrac"] != 1.0:
+                land_cover.minSoilDepthFrac = pcr.max(
+                    0.0,
+                    prefactors["linear_multiplier_for_minSoilDepthFrac"]
+                    * cover_baseline["minSoilDepthFrac"],
+                )
+                land_cover.minSoilDepthFrac = pcr.min(
+                    land_cover.minSoilDepthFrac,
+                    cover_baseline["maxSoilDepthFrac"],
+                )
+                land_cover.minSoilDepthFrac = pcr.min(1.0, land_cover.minSoilDepthFrac)
+
+                land_cover.arnoBeta = pcr.max(
+                    0.001,
+                    (cover_baseline["maxSoilDepthFrac"] - 1.0)
+                    / (1.0 - land_cover.minSoilDepthFrac)
+                    + cover_baseline["orographyBeta"]
+                    - 0.01,
+                )
+                land_cover.arnoBeta = pcr.cover(
+                    pcr.max(0.001, land_cover.arnoBeta),
+                    0.001,
+                )
+                land_cover.rootZoneWaterStorageMin = (
+                    land_cover.minSoilDepthFrac
+                    * land_cover.parameters.rootZoneWaterStorageCap
+                )
+                land_cover.rootZoneWaterStorageRange = (
+                    land_cover.parameters.rootZoneWaterStorageCap
+                    - land_cover.rootZoneWaterStorageMin
+                )
+            else:
+                land_cover.minSoilDepthFrac = cover_baseline["minSoilDepthFrac"]
+                land_cover.arnoBeta = cover_baseline["arnoBeta"]
+                land_cover.rootZoneWaterStorageMin = cover_baseline[
+                    "rootZoneWaterStorageMin"
+                ]
+                land_cover.rootZoneWaterStorageRange = cover_baseline[
+                    "rootZoneWaterStorageRange"
+                ]
+            
+            # Store crop coefficient prefactor on each land cover object for dynamic application
+            land_cover.cropCoefficientPrefactor = prefactors["linear_multiplier_for_cropCoefficient"]
+
+        logger.info("BMI static prefactors applied.")
+
 
 
     def update(self):
