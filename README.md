@@ -22,7 +22,7 @@ The main modifications made in this fork are:
 
 - Updated the BMI implementation to the current version
 - added set_channel storage (and template to add more model state interaction) using the updated BMI
-- added parameter multipliers for calibration etc. (yet to be ported from WIP version)
+- added parameter multipliers for calibration etc.
 
 
 
