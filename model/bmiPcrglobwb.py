@@ -28,9 +28,15 @@ class BmiPCRGlobWB(EBmi):
     def in_modeltime(self, days_since_industry_epoch):
         return (datetime.datetime(1901, 1, 1) + datetime.timedelta(days=days_since_industry_epoch)).date()
 
+    # def calculate_shape(self):
+    #     # return pcr.pcr2numpy(self.model.landmask, 1e20).shape
+    #     return (pcr.clone().nrRows(), pcr.clone().nrCols())
     def calculate_shape(self):
-        # return pcr.pcr2numpy(self.model.landmask, 1e20).shape
-        return (pcr.clone().nrRows(), pcr.clone().nrCols())
+        return np.array(
+            [pcr.clone().nrRows(), pcr.clone().nrCols()],
+            dtype=np.int32
+        )
+    
 
     #BMI initialize (as a single step)
     def initialize(self, fileName):
@@ -609,10 +615,10 @@ class BmiPCRGlobWB(EBmi):
 
         #raise NotImplementedError()
     
-    def get_grid_shape(self, grid: int, shape: np.ndarray): #https://bmi.csdms.io/en/stable/bmi.grid_funcs.html#get-grid-shape
-        if grid != 0:
-            raise ValueError(f"Invalid grid: {grid}, debug: should be 0?")   #test
-        return self.shape    #ToDo first thing tomorrow, must be self.shape?
+    # def get_grid_shape(self, grid: int, shape: np.ndarray): #https://bmi.csdms.io/en/stable/bmi.grid_funcs.html#get-grid-shape
+    #     if grid != 0:
+    #         raise ValueError(f"Invalid grid: {grid}, debug: should be 0?")   #test
+    #     return self.shape    #ToDo first thing tomorrow, must be self.shape?
         
         # should return(?) [rows,columns] = [ny,nx] but has ->None
         # shape[0] = pcr.clone().nrRows()  #rows = ny
@@ -623,22 +629,53 @@ class BmiPCRGlobWB(EBmi):
 
         # shape[0] = nrows
         # shape[1] = ncols
-    def get_grid_x(self, grid: int, x: np.ndarray) -> np.ndarray:
-        logging.warning("if you see this, get_grid_x is called")    
-        north = pcr.clone().north()
-        cellSize = pcr.clone().cellSize()
-        nrRows = pcr.clone().nrRows()
-        south = north - (cellSize * nrRows)
-        spacing=pcr.clone().cellSize()
-        return south+spacing*(np.arange(nrRows)+0.5)
-        # logging.warning("if you see this swap XY happend")
-        # raise NotImplementedError("if you see this swap XY happend") 
 
-    def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:  #https://github.com/eWaterCycle/PCR-GLOBWB_model/blob/bmi_fixes_setters/model/bmiPcrglobwb.py
+    def get_grid_shape(self, grid: int, shape: np.ndarray):
+        if grid != 0:
+            raise ValueError(f"Invalid grid: {grid}")
+        shape[:] = self.shape
+
+    def get_grid_x(self, grid: int, x: np.ndarray): #x is the horizontal direction, so it uses west and nrCols.
+        if grid != 0:
+            raise ValueError(f"Invalid grid: {grid}")
+
         west = pcr.clone().west()
-        spacing=pcr.clone().cellSize()
-        return west+spacing*(np.arange(self.shape[1])+0.5)
-        #raise NotImplementedError()
+        cell_size = pcr.clone().cellSize()
+        nr_cols = pcr.clone().nrCols()
+
+        x[:] = west + cell_size * (np.arange(nr_cols) + 0.5)
+
+    def get_grid_y(self, grid: int, y: np.ndarray): #y is the vertical direction, so it uses south/north and nrRows.
+        if grid != 0:
+            raise ValueError(f"Invalid grid: {grid}")
+
+        north = pcr.clone().north()
+        cell_size = pcr.clone().cellSize()
+        nr_rows = pcr.clone().nrRows()
+
+        south = north - cell_size * nr_rows
+
+        y[:] = south + cell_size * (np.arange(nr_rows) + 0.5)
+
+
+
+    
+    # def get_grid_x(self, grid: int, x: np.ndarray) -> np.ndarray:
+    #     #logging.warning("if you see this, get_grid_x is called")    
+    #     north = pcr.clone().north()
+    #     cellSize = pcr.clone().cellSize()
+    #     nrRows = pcr.clone().nrRows()
+    #     south = north - (cellSize * nrRows)
+    #     spacing=pcr.clone().cellSize()
+    #     return south+spacing*(np.arange(nrRows)+0.5)
+    #     # logging.warning("if you see this swap XY happend")
+    #     # raise NotImplementedError("if you see this swap XY happend") 
+
+    # def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:  #https://github.com/eWaterCycle/PCR-GLOBWB_model/blob/bmi_fixes_setters/model/bmiPcrglobwb.py
+    #     west = pcr.clone().west()
+    #     spacing=pcr.clone().cellSize()
+    #     return west+spacing*(np.arange(self.shape[1])+0.5)
+    #     #raise NotImplementedError()
 
     def get_grid_z(self, grid: int, z: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
