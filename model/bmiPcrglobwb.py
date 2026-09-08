@@ -34,7 +34,6 @@ class BmiPCRGlobWB(EBmi):
     def calculate_shape(self):
         return np.array(
             [pcr.clone().nrRows(), pcr.clone().nrCols()],
-            dtype=np.int32
         )
     
 
