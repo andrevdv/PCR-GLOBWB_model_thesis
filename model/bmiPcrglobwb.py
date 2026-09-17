@@ -31,12 +31,7 @@ class BmiPCRGlobWB(EBmi):
     def calculate_shape(self):
         # return pcr.pcr2numpy(self.model.landmask, 1e20).shape
         return (pcr.clone().nrRows(), pcr.clone().nrCols())
-    # def calculate_shape(self):
-    #     return np.array(
-    #         [pcr.clone().nrRows(), pcr.clone().nrCols()],
-    #         dtype=np.int64
-    #     )
-    
+
 
     #BMI initialize (as a single step)
     def initialize(self, fileName):
@@ -629,35 +624,6 @@ class BmiPCRGlobWB(EBmi):
 
         # shape[0] = nrows
         # shape[1] = ncols
-
-    # def get_grid_shape(self, grid: int, shape: np.ndarray):
-    #     if grid != 0:
-    #         raise ValueError(f"Invalid grid: {grid}")
-    #     shape[:] = self.shape
-
-    # def get_grid_x(self, grid: int, x: np.ndarray): #x is the horizontal direction, so it uses west and nrCols.
-    #     if grid != 0:
-    #         raise ValueError(f"Invalid grid: {grid}")
-
-    #     west = pcr.clone().west()
-    #     cell_size = pcr.clone().cellSize()
-    #     nr_cols = pcr.clone().nrCols()
-
-    #     x[:] = west + cell_size * (np.arange(nr_cols) + 0.5)
-
-    # def get_grid_y(self, grid: int, y: np.ndarray): #y is the vertical direction, so it uses south/north and nrRows.
-    #     if grid != 0:
-    #         raise ValueError(f"Invalid grid: {grid}")
-
-    #     north = pcr.clone().north()
-    #     cell_size = pcr.clone().cellSize()
-    #     nr_rows = pcr.clone().nrRows()
-
-    #     south = north - cell_size * nr_rows
-
-    #     y[:] = south + cell_size * (np.arange(nr_rows) + 0.5)
-
-
 
     
     def get_grid_y(self, grid: int, x: np.ndarray) -> np.ndarray:
